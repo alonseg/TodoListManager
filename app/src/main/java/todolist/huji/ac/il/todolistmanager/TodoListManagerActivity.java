@@ -3,6 +3,7 @@ package todolist.huji.ac.il.todolistmanager;
 import android.app.Activity;
 import android.app.Dialog;
 import android.content.Intent;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.Menu;
@@ -13,9 +14,9 @@ import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.TextView;
+import android.widget.Toast;
 
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
 
 
@@ -28,34 +29,37 @@ public class TodoListManagerActivity extends Activity {
     public static final String TITLE = "title";
     public static final String DATE = "date";
 
-    ArrayList<String> items;
-    ArrayList<Date> dates;
-    MyAdapter tasksAdapter;
+    public String[] from = new String[] { DBHelper.TITLE, DBHelper.DUE};
+    public int[] to = new int[] { R.id.txtTodoTitle, R.id.txtTodoDueDate };
+
     String[] words;
+    MyCursorAdapter simpleAd;
+    Cursor tasks;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_todo_list_manager);
 
-        items = new ArrayList<String>();
-        dates = new ArrayList<Date>();
+        DBHelper myDB = new DBHelper(this);
+        tasks = myDB.getData(myDB);
 
         final ListView taskList = (ListView) findViewById(R.id.tasksList);
-        tasksAdapter = new MyAdapter(this, items, dates);
-        taskList.setAdapter(tasksAdapter);
+        simpleAd = new MyCursorAdapter(this,R.layout.row, tasks, from, to, 0);
+        taskList.setAdapter(simpleAd);
 
         setDeleteDialog(taskList);
-
     }
 
-    private void setDeleteDialog(ListView taskList) {
+    private void setDeleteDialog(final ListView taskList) {
         taskList.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
             @Override
-            public boolean onItemLongClick(AdapterView<?> parent, View view, final int position, long id) {
+            public boolean onItemLongClick(AdapterView<?> parent, View view, final int position, final long id) {
                 final Dialog deleteDialog = new Dialog(TodoListManagerActivity.this);
                 deleteDialog.setContentView(R.layout.delete_dialog);
-                String ttl = items.get(position);
+                LinearLayout item = (LinearLayout)view;
+                TextView itemTtl = (TextView)item.findViewById(R.id.txtTodoTitle);
+                String ttl = itemTtl.getText().toString();
                 deleteDialog.setTitle(ttl);
 
                 Button dialogButton = (Button) deleteDialog.findViewById(R.id.menuItemDelete);
@@ -63,9 +67,9 @@ public class TodoListManagerActivity extends Activity {
                 dialogButton.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        items.remove(position);
-                        dates.remove(position);
-                        tasksAdapter.notifyDataSetChanged();
+                        DBHelper dbh = new DBHelper(getApplicationContext());
+                        dbh.deleteEntry(dbh, id);
+                        simpleAd.changeCursor(dbh.getData(dbh));
                         deleteDialog.dismiss();
                     }
                 });
@@ -132,13 +136,17 @@ public class TodoListManagerActivity extends Activity {
                     Date date = null;
                     if (data.hasExtra(DATE)){
                         date = (Date)data.getSerializableExtra(DATE);
-                        SimpleDateFormat simpleDate = new SimpleDateFormat("dd/MM/yyyy");
-//                        System.out.println(dateStr);
+                    }
+                    DBHelper dbh = new DBHelper(getApplicationContext());
+                    try{
+                        dbh.insertTask(dbh, ttl, date.getTime());
+                    }catch (Exception e){
+                        Toast.makeText(getApplicationContext(), "caught an exception", Toast.LENGTH_LONG).show();
                     }
 
-                    items.add(ttl);
-                    dates.add(date);
-                    tasksAdapter.notifyDataSetChanged();
+                    Toast.makeText(getBaseContext(), "inserted task to DB", Toast.LENGTH_LONG).show();
+                    tasks = dbh.getData(dbh);
+                    simpleAd.changeCursor(tasks);
                 }
                 break;
             case RES_CNCL:

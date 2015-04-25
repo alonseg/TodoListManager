@@ -10,14 +10,11 @@ import android.widget.Button;
 import android.widget.DatePicker;
 import android.widget.EditText;
 
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 
 
 public class AddNewTodoItemActivity extends Activity {
-    ArrayList<String> items;
-
     public static final String TITLE = "title";
     public static final String DATE = "date";
 
@@ -29,7 +26,7 @@ public class AddNewTodoItemActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.add_dialog);
 
-        items = new ArrayList<String>();
+//        items = new ArrayList<String>();
 
         final DatePicker dateP = (DatePicker) findViewById(R.id.datePicker);
 
@@ -62,6 +59,8 @@ public class AddNewTodoItemActivity extends Activity {
                 EditText ttl = (EditText)findViewById(R.id.edtNewItem);
                 res.putExtra(TITLE, ttl.getText().toString());
                 setResult(RES_OK, res);
+
+
                 finish();
 
             }
